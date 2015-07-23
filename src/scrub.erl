@@ -75,6 +75,20 @@ qtest() ->
          "GetWeatherByPlaceName",
          ["Boston"]).
 
+convert(XML)->
+    case erlsom:simple_form(XML) of
+        {ok,{Node,_Attrib,Value},_}->
+            {Node,xml_to_kv(Value)};
+        Err->
+            Err
+    end.
+
+xml_to_kv([{Node,_Attrib,Value}|T])->
+    [{Node,lists:flatten(xml_to_kv(Value))}|xml_to_kv(T)];
+
+xml_to_kv(Value)->
+    Value.
+
 %%% --------------------------------------------------------------------
 %%% Access functions
 %%% --------------------------------------------------------------------
@@ -256,7 +270,11 @@ call_attach(#wsdl{operations = Operations, model = Model},
                     ?dbg("+++ HttpRes = ~p~n", [HttpRes]),
 		    case HttpRes of
 			{ok, _Code, _ReturnHeaders, Body} ->
-			    parseMessage(Body, Model);
+                            OUT = lists:sublist(Body, string:str(Body,"<soap:Envelope"), string:str(Body,"</soap:Envelope")-string:str(Body,"<soap:Envelope")+16),
+                            ?dbg("TEST = ~p~n", [OUT]),
+			    %parseMessage(OUT, Model);
+                            %convert(erlsom:simple_form(OUT));
+                            convert(OUT);
 			Error ->
 			    %% in case of HTTP error: return
                             %% {error, description}
